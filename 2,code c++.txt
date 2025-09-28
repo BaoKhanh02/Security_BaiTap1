@@ -1,0 +1,99 @@
+// affine_cipher.cpp (demo tu dong, thong bao tieng Viet khong dau)
+#include <bits/stdc++.h>
+using namespace std;
+
+int egcd(int a, int b, int &x, int &y) {
+    if (b == 0) { x = 1; y = 0; return a; }
+    int x1, y1;
+    int g = egcd(b, a % b, x1, y1);
+    x = y1;
+    y = x1 - (a / b) * y1;
+    return g;
+}
+int modinv(int a, int m) {
+    int x, y;
+    int g = egcd(a, m, x, y);
+    if (g != 1) return -1; // khong co nghich dao
+    x = (x % m + m) % m;
+    return x;
+}
+
+bool is_alpha(char c) {
+    return isalpha(static_cast<unsigned char>(c));
+}
+
+string affine_encrypt(const string &text, int a, int b) {
+    string out;
+    for (char ch : text) {
+        if (!is_alpha(ch)) { out.push_back(ch); continue; }
+        bool upper = isupper(static_cast<unsigned char>(ch));
+        char base = upper ? 'A' : 'a';
+        int p = ch - base;
+        int c = (a * p + b) % 26;
+        out.push_back(char(c + base));
+    }
+    return out;
+}
+
+string affine_decrypt(const string &text, int a, int b) {
+    int ainv = modinv(a, 26);
+    if (ainv == -1) return string("ERROR: a khong co nghich dao mod 26.");
+    string out;
+    for (char ch : text) {
+        if (!is_alpha(ch)) { out.push_back(ch); continue; }
+        bool upper = isupper(static_cast<unsigned char>(ch));
+        char base = upper ? 'A' : 'a';
+        int c = ch - base;
+        int p = (ainv * ( (c - b) % 26 + 26 )) % 26;
+        out.push_back(char(p + base));
+    }
+    return out;
+}
+
+vector<int> valid_as() {
+    vector<int> res;
+    for (int a = 1; a < 26; ++a) if (std::gcd(a, 26) == 1) res.push_back(a);
+    return res;
+}
+
+// brute-force: tim cac cap (a,b) cho ket qua trung hop
+void brute_force_find(const string &cipher, const string &target_plain) {
+    auto as = valid_as();
+    bool found = false;
+    cout << "\nDang tim bang brute-force cho ket qua \"" << target_plain << "\"...\n";
+    for (int a : as) {
+        for (int b = 0; b < 26; ++b) {
+            string dec = affine_decrypt(cipher, a, b);
+            if (dec == target_plain) {
+                cout << "Tim thay: a=" << setw(2) << a << " b=" << setw(2) << b
+                     << " -> " << dec << "\n";
+                found = true;
+            }
+        }
+    }
+    if (!found) cout << "Khong tim thay ket qua trung hop trong danh sach brute-force.\n";
+}
+
+int main() {
+    // tham so demo
+    string plaintext = "hello world";
+    int a = 5;
+    int b = 8;
+
+    cout << "Affine Cipher - demo tu dong\n";
+    cout << "Van ban goc: \"" << plaintext << "\"\n";
+    cout << "Su dung a = " << a << ", b = " << b << " (gcd(a,26)=" << std::gcd(a,26) << ")\n";
+
+    // ma hoa
+    string cipher = affine_encrypt(plaintext, a, b);
+    cout << "\nBan ma hoa (ciphertext): \"" << cipher << "\"\n";
+
+    // giai ma
+    string decrypted = affine_decrypt(cipher, a, b);
+    cout << "Giai ma lai (voi a,b): \"" << decrypted << "\"\n";
+
+    // brute-force tim cap (a,b) cho plaintext goc
+    brute_force_find(cipher, plaintext);
+
+    return 0;
+}

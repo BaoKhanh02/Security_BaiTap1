@@ -1,0 +1,31 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+string caesarEncrypt(string text, int key) {
+    string result = "";
+    key = key % 26;
+    for (char c : text) {
+        if (isalpha(c)) {
+            char base = isupper(c) ? 'A' : 'a';
+            result += char((c - base + key) % 26 + base);
+        } else {
+            result += c; // giữ nguyên ký tự không phải chữ
+        }
+    }
+    return result;
+}
+
+string caesarDecrypt(string text, int key) {
+    return caesarEncrypt(text, 26 - key); 
+}
+
+int main() {
+    string plain = "HELLO WORLD";
+    int key = 3;
+    string cipher = caesarEncrypt(plain, key);
+    string decrypted = caesarDecrypt(cipher, key);
+
+    cout << "Ban Dau: " << plain << endl;
+    cout << "Ma hoa: " << cipher << endl;
+    cout << "Giai ma: " << decrypted << endl;
+}

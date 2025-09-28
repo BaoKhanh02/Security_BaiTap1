@@ -1,0 +1,122 @@
+// columnar_transposition.cpp
+// Demo tu dong cho "Hello World" - in tieng Viet khong dau
+#include <bits/stdc++.h>
+using namespace std;
+
+string normalize(const string &s) {
+    string r;
+    for(char ch: s) if (isalpha((unsigned char)ch)) r.push_back(toupper(ch));
+    return r;
+}
+
+// build order vector from keyword (e.g. "ZEBRA") => order: index of columns in read order
+vector<int> order_from_keyword(const string &key) {
+    int n = key.size();
+    vector<pair<char,int>> arr;
+    for(int i=0;i<n;++i) arr.push_back({(char)toupper(key[i]), i});
+    stable_sort(arr.begin(), arr.end(), [](auto &a, auto &b){
+        if (a.first != b.first) return a.first < b.first;
+        return a.second < b.second;
+    });
+    vector<int> order;
+    for(auto &p: arr) order.push_back(p.second);
+    return order;
+}
+
+// parse numeric permutation string "2,0,3,1" -> vector<int>
+vector<int> parse_perm(const string &s) {
+    vector<int> res;
+    string token;
+    for(char c: s) {
+        if (c==',' || isspace((unsigned char)c)) {
+            if (!token.empty()) { res.push_back(stoi(token)); token.clear(); }
+        } else token.push_back(c);
+    }
+    if (!token.empty()) res.push_back(stoi(token));
+    return res;
+}
+
+// encryption: fill rows, read columns in order
+string columnar_encrypt(const string &pt, const vector<int> &order) {
+    string p = normalize(pt);
+    int n = order.size();
+    if (n <= 0) return "";
+    int rows = (p.size() + n - 1) / n;
+    int total = rows * n;
+    // pad with X
+    p.append(total - p.size(), 'X');
+    vector<string> mat(rows, string(n, 'X'));
+    for (int i = 0; i < (int)p.size(); ++i) mat[i / n][i % n] = p[i];
+    string out;
+    for (int k = 0; k < n; ++k) {
+        int col = order[k];
+        for (int r = 0; r < rows; ++r) out.push_back(mat[r][col]);
+    }
+    return out;
+}
+
+// decryption: fill columns by order from ciphertext, then read row-wise
+string columnar_decrypt(const string &ct, const vector<int> &order) {
+    string c = normalize(ct);
+    int n = order.size();
+    if (n <= 0) return "";
+    int rows = (c.size() + n - 1) / n;
+    int total = rows * n;
+    // assume ct length == rows*n (padded). If not, we still fill left-to-right
+    vector<string> mat(rows, string(n, 'X'));
+    int idx = 0;
+    for (int k = 0; k < n; ++k) {
+        int col = order[k];
+        for (int r = 0; r < rows; ++r) {
+            if (idx < (int)c.size()) mat[r][col] = c[idx++];
+            else mat[r][col] = 'X';
+        }
+    }
+    string out;
+    for (int r = 0; r < rows; ++r) for (int j = 0; j < n; ++j) out.push_back(mat[r][j]);
+    // trim trailing X padding
+    while (!out.empty() && out.back() == 'X') out.pop_back();
+    return out;
+}
+
+int main(){
+    // demo params
+    string raw = "Hello World";
+    cout << "Columnar Transposition - demo tu dong\n";
+    cout << "Van ban goc: \"" << raw << "\"\n\n";
+
+    // 1) Demo voi numeric permutation order = [2,0,3,1]
+    vector<int> numeric_order = {2,0,3,1}; // doc cot theo thu tu index 2,0,3,1
+    cout << "=== Demo 1: numeric permutation ===\n";
+    cout << "Permutation (read order): [";
+    for (size_t i=0;i<numeric_order.size();++i){
+        if (i) cout << ",";
+        cout << numeric_order[i];
+    }
+    cout << "]\n";
+    string cipher1 = columnar_encrypt(raw, numeric_order);
+    cout << "Ciphertext: " << cipher1 << "\n";
+    string plain1 = columnar_decrypt(cipher1, numeric_order);
+    cout << "Giai ma lai: " << plain1 << "\n\n";
+
+    // 2) Demo voi keyword = "ZEBRA"
+    string key = "ZEBRA";
+    cout << "=== Demo 2: keyword ===\n";
+    cout << "Keyword: \"" << key << "\"\n";
+    vector<int> key_order = order_from_keyword(key);
+    cout << "Tu thu cot (read order indexes): [";
+    for (size_t i=0;i<key_order.size();++i){
+        if (i) cout << ",";
+        cout << key_order[i];
+    }
+    cout << "]\n";
+    string cipher2 = columnar_encrypt(raw, key_order);
+    cout << "Ciphertext: " << cipher2 << "\n";
+    string plain2 = columnar_decrypt(cipher2, key_order);
+    cout << "Giai ma lai: " << plain2 << "\n\n";
+
+    // thong tin chuan hoa
+    cout << "Luu y: ham normalize loai bo ky tu khac va chuyen sang uppercase truoc khi xu ly.\n";
+
+    return 0;
+}

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Playfair Cipher - Demo (ascii)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  body{font-family:system-ui,Segoe UI,Roboto,Arial;padding:18px;background:#f7f8fc}
+  .card{max-width:900px;margin:auto;background:#fff;padding:16px;border-radius:10px;box-shadow:0 8px 20px rgba(12,20,40,0.06)}
+  label{display:block;margin-top:8px;font-weight:600}
+  input,textarea{width:100%;padding:8px;border-radius:8px;border:1px solid #e6e9ef;box-sizing:border-box}
+  button{padding:8px 12px;border-radius:8px;border:0;background:#2563eb;color:#fff;cursor:pointer;margin-right:8px;margin-top:8px}
+  pre{background:#0b1220;color:#dbeafe;padding:12px;border-radius:8px;overflow:auto}
+  table{border-collapse:collapse;margin-top:8px}
+  td{border:1px solid #e6e9ef;padding:6px 10px;text-align:center}
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>Playfair Cipher - Demo (ascii)</h2>
+
+  <label>Plaintext</label>
+  <textarea id="pt" rows="2">HELLO WORLD</textarea>
+
+  <label>Keyphrase</label>
+  <input id="key" value="KHOA" />
+
+  <div>
+    <button id="enc">Encrypt</button>
+    <button id="dec">Decrypt</button>
+  </div>
+
+  <label>Output</label>
+  <pre id="out"></pre>
+
+  <div>5x5 matrix (I/J merged):</div>
+  <div id="matrix"></div>
+
+  <div style="margin-top:10px;color:#666">Note: J is merged into I; 'X' inserted as filler if needed.</div>
+</div>
+
+<script>
+function normalize(s){
+  return s.toUpperCase().replace(/J/g,'I').replace(/[^A-Z]/g,'');
+}
+function generateMatrix(key){
+  let k = normalize(key);
+  let used = Array(26).fill(false);
+  let order = [];
+  for(let ch of k){
+    let idx = ch.charCodeAt(0)-65;
+    if(!used[idx]){ used[idx]=true; order.push(ch); }
+  }
+  for(let i=0;i<26;i++){
+    let c = String.fromCharCode(65+i);
+    if(c==='J') continue;
+    if(!used[i]){ used[i]=true; order.push(c); }
+  }
+  let mat = [];
+  for(let r=0;r<5;r++) mat.push(order.slice(r*5, r*5+5));
+  return mat;
+}
+function renderMatrix(mat){
+  let html = '<table>';
+  for(let r=0;r<5;r++){
+    html += '<tr>';
+    for(let c=0;c<5;c++) html += '<td>' + mat[r][c] + '</td>';
+    html += '</tr>';
+  }
+  html += '</table>';
+  document.getElementById('matrix').innerHTML = html;
+}
+function findPos(mat,ch){
+  if(ch==='J') ch='I';
+  for(let r=0;r<5;r++) for(let c=0;c<5;c++) if(mat[r][c]===ch) return [r,c];
+  return [-1,-1];
+}
+function preprocess(text){
+  let s = normalize(text);
+  let res = [];
+  for(let i=0;i<s.length;){
+    let a = s[i];
+    let b = (i+1<s.length)?s[i+1]:null;
+    if(!b){ res.push([a,'X']); i++; }
+    else if(a===b){ res.push([a,'X']); i++; }
+    else { res.push([a,b]); i+=2; }
+  }
+  return res;
+}
+function encryptPair(p, mat){
+  let [r1,c1] = findPos(mat,p[0]);
+  let [r2,c2] = findPos(mat,p[1]);
+  if(r1===r2) return [ mat[r1][(c1+1)%5], mat[r2][(c2+1)%5] ];
+  if(c1===c2) return [ mat[(r1+1)%5][c1], mat[(r2+1)%5][c2] ];
+  return [ mat[r1][c2], mat[r2][c1] ];
+}
+function decryptPair(p, mat){
+  let [r1,c1] = findPos(mat,p[0]);
+  let [r2,c2] = findPos(mat,p[1]);
+  if(r1===r2) return [ mat[r1][(c1+4)%5], mat[r2][(c2+4)%5] ];
+  if(c1===c2) return [ mat[(r1+4)%5][c1], mat[(r2+4)%5][c2] ];
+  return [ mat[r1][c2], mat[r2][c1] ];
+}
+function encrypt(pt,key){
+  let mat = generateMatrix(key);
+  let bigrams = preprocess(pt);
+  let out = '';
+  for(let p of bigrams){
+    let e = encryptPair(p, mat);
+    out += e[0] + e[1];
+  }
+  return {out, mat};
+}
+function decrypt(ct,key){
+  let mat = generateMatrix(key);
+  let s = normalize(ct);
+  let out = '';
+  for(let i=0;i<s.length;i+=2){
+    let p = [s[i], s[i+1]];
+    let d = decryptPair(p, mat);
+    out += d[0] + d[1];
+  }
+  return {out, mat};
+}
+document.getElementById('enc').addEventListener('click', ()=>{
+  let pt = document.getElementById('pt').value;
+  let key = document.getElementById('key').value;
+  let res = encrypt(pt,key);
+  document.getElementById('out').textContent = res.out;
+  renderMatrix(res.mat);
+});
+document.getElementById('dec').addEventListener('click', ()=>{
+  let ct = document.getElementById('pt').value;
+  let key = document.getElementById('key').value;
+  let res = decrypt(ct,key);
+  document.getElementById('out').textContent = res.out;
+  renderMatrix(res.mat);
+});
+renderMatrix(generateMatrix(document.getElementById('key').value));
+</script>
+</body>
+</html>

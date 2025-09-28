@@ -1,0 +1,52 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+// Chuẩn hoá: bỏ ký tự lạ, đổi sang chữ in hoa
+string normalize(const string &s){
+    string r;
+    for(char ch: s){
+        if(isalpha((unsigned char)ch)) 
+            r.push_back(toupper(ch));
+    }
+    return r;
+}
+
+// Mã hoá Vigenere
+string vigenere_encrypt(const string &pt, const string &key){
+    string p = normalize(pt), k = normalize(key);
+    string ct;
+    for(int i=0; i<p.size(); i++){
+        int pi = p[i] - 'A';
+        int ki = k[i % k.size()] - 'A';
+        ct.push_back('A' + (pi + ki) % 26);
+    }
+    return ct;
+}
+
+// Giải mã Vigenere
+string vigenere_decrypt(const string &ct, const string &key){
+    string c = normalize(ct), k = normalize(key);
+    string pt;
+    for(int i=0; i<c.size(); i++){
+        int ci = c[i] - 'A';
+        int ki = k[i % k.size()] - 'A';
+        pt.push_back('A' + (ci - ki + 26) % 26);
+    }
+    return pt;
+}
+
+int main(){
+    string text = "HELLO WORLD";
+    string key  = "KHOA";
+
+    cout << "Plaintext : " << text << "\n";
+    cout << "Key       : " << key << "\n";
+
+    string enc = vigenere_encrypt(text, key);
+    cout << "Ciphertext: " << enc << "\n";
+
+    string dec = vigenere_decrypt(enc, key);
+    cout << "Decrypted : " << dec << "\n";
+
+    return 0;
+}

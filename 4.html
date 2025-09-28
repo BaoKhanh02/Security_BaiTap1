@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Vigenere Cipher Demo</title>
+</head>
+<body>
+  <h2>Vigenere Cipher</h2>
+  <label>Plaintext:</label><br>
+  <input id="pt" value="HELLO WORLD"><br>
+  <label>Key:</label><br>
+  <input id="key" value="KHOA"><br><br>
+  <button onclick="encrypt()">Encrypt</button>
+  <button onclick="decrypt()">Decrypt</button>
+  <p><b>Output:</b> <span id="out"></span></p>
+
+<script>
+function normalize(s){
+  return s.toUpperCase().replace(/[^A-Z]/g,"");
+}
+
+function vigenere_encrypt(pt, key){
+  pt = normalize(pt);
+  key = normalize(key);
+  let ct = "";
+  for(let i=0;i<pt.length;i++){
+    let pi = pt.charCodeAt(i)-65;
+    let ki = key.charCodeAt(i % key.length)-65;
+    ct += String.fromCharCode(65+(pi+ki)%26);
+  }
+  return ct;
+}
+
+function vigenere_decrypt(ct, key){
+  ct = normalize(ct);
+  key = normalize(key);
+  let pt = "";
+  for(let i=0;i<ct.length;i++){
+    let ci = ct.charCodeAt(i)-65;
+    let ki = key.charCodeAt(i % key.length)-65;
+    pt += String.fromCharCode(65+(ci-ki+26)%26);
+  }
+  return pt;
+}
+
+function encrypt(){
+  let text = document.getElementById("pt").value;
+  let key  = document.getElementById("key").value;
+  document.getElementById("out").innerText = vigenere_encrypt(text,key);
+}
+
+function decrypt(){
+  let text = document.getElementById("pt").value;
+  let key  = document.getElementById("key").value;
+  document.getElementById("out").innerText = vigenere_decrypt(text,key);
+}
+</script>
+</body>
+</html>

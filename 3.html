@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<title>Columnar Transposition</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  body{font-family:system-ui,Segoe UI,Roboto,Arial;padding:20px;background:#f7f8fc;color:#111}
+  .card{max-width:900px;margin:auto;background:#fff;padding:18px;border-radius:12px;box-shadow:0 8px 30px rgba(12,20,40,0.06)}
+  label{display:block;margin-top:10px;font-weight:600}
+  textarea,input,select{width:100%;padding:8px;border-radius:8px;border:1px solid #e4e7ef;box-sizing:border-box}
+  .row{display:flex;gap:8px}
+  .col{flex:1}
+  button{padding:10px 14px;border-radius:8px;border:0;background:#2563eb;color:#fff;cursor:pointer;margin-right:8px}
+  pre{background:#0b1220;color:#dbeafe;padding:12px;border-radius:8px;overflow:auto;white-space:pre-wrap}
+  .small{font-size:13px;color:#6b7280}
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>Columnar Transposition (Hoán vị cột)</h2>
+  <div class="small">Text sẽ được chuẩn hoá: chỉ giữ chữ A–Z (uppercase). Padding = 'X'.</div>
+
+  <label for="text">Plaintext / Ciphertext</label>
+  <textarea id="text" rows="4">WE ARE DISCOVERED</textarea>
+
+  <label>Key mode</label>
+  <select id="mode">
+    <option value="keyword">Keyword (e.g. ZEBRA)</option>
+    <option value="perm">Numeric permutation (e.g. 2,0,3,1)</option>
+  </select>
+
+  <div id="keybox" style="margin-top:8px;">
+    <label id="keylabel">Keyword</label>
+    <input id="key" value="ZEBRA" />
+  </div>
+
+  <div style="margin-top:12px;">
+    <button id="enc">Encrypt</button>
+    <button id="dec">Decrypt</button>
+  </div>
+
+  <label style="margin-top:12px">Output</label>
+  <pre id="output"></pre>
+</div>
+
+<script>
+function normalize(s){ return s.toUpperCase().replace(/[^A-Z]/g,''); }
+
+function order_from_keyword(key){
+  key = key.toUpperCase().replace(/[^A-Z]/g,'');
+  let arr = [];
+  for(let i=0;i<key.length;i++) arr.push({ch:key[i], idx:i});
+  arr.sort((a,b) => a.ch === b.ch ? a.idx - b.idx : a.ch < b.ch ? -1 : 1);
+  return arr.map(x => x.idx);
+}
+function parse_perm(s){
+  return s.split(',').map(x => x.trim()).filter(x=>x!=='').map(x=>parseInt(x,10));
+}
+
+function columnar_encrypt(pt, order){
+  let p = normalize(pt);
+  let n = order.length;
+  if(n===0) return '';
+  let rows = Math.ceil(p.length / n);
+  let total = rows * n;
+  p = p.padEnd(total, 'X');
+  // build matrix row-wise
+  let mat = [];
+  for(let r=0;r<rows;r++){
+    mat.push(p.slice(r*n, r*n + n).split(''));
+  }
+  let out = '';
+  for(let k=0;k<n;k++){
+    let col = order[k];
+    for(let r=0;r<rows;r++) out += mat[r][col];
+  }
+  return out;
+}
+
+function columnar_decrypt(ct, order){
+  let c = normalize(ct);
+  let n = order.length;
+  if(n===0) return '';
+  let rows = Math.ceil(c.length / n);
+  let total = rows * n;
+  c = c.padEnd(total, 'X');
+  // empty matrix
+  let mat = Array.from({length:rows}, ()=>Array(n).fill('X'));
+  let idx=0;
+  for(let k=0;k<n;k++){
+    let col = order[k];
+    for(let r=0;r<rows;r++){
+      mat[r][col] = c[idx++] || 'X';
+    }
+  }
+  let out = '';
+  for(let r=0;r<rows;r++) for(let j=0;j<n;j++) out += mat[r][j];
+  // trim trailing X
+  out = out.replace(/X+$/,'');
+  return out;
+}
+
+// UI
+const mode = document.getElementById('mode');
+const keybox = document.getElementById('keybox');
+const keylabel = document.getElementById('keylabel');
+const keyinput = document.getElementById('key');
+const text = document.getElementById('text');
+const output = document.getElementById('output');
+
+mode.addEventListener('change', ()=>{
+  if(mode.value === 'keyword'){ keylabel.textContent = 'Keyword'; keyinput.value = 'ZEBRA'; }
+  else { keylabel.textContent = 'Permutation (comma separated indices)'; keyinput.value = '2,0,3,1'; }
+});
+
+document.getElementById('enc').addEventListener('click', ()=>{
+  let k = keyinput.value.trim();
+  let ord = mode.value === 'keyword' ? order_from_keyword(k) : parse_perm(k);
+  output.textContent = columnar_encrypt(text.value, ord);
+});
+document.getElementById('dec').addEventListener('click', ()=>{
+  let k = keyinput.value.trim();
+  let ord = mode.value === 'keyword' ? order_from_keyword(k) : parse_perm(k);
+  output.textContent = columnar_decrypt(text.value, ord);
+});
+</script>
+</body>
+</html>

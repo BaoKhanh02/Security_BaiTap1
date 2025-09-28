@@ -1,0 +1,155 @@
+// playfair_demo.cpp
+// Playfair cipher demo - messages are ascii (no accents)
+#include <bits/stdc++.h>
+using namespace std;
+
+string normalize(const string &s) {
+    string r;
+    for(char ch: s) {
+        if (isalpha((unsigned char)ch)) {
+            char c = toupper(ch);
+            if (c == 'J') c = 'I';
+            r.push_back(c);
+        }
+    }
+    return r;
+}
+
+vector<vector<char>> generate_matrix(const string &key) {
+    string k = normalize(key);
+    vector<bool> used(26,false);
+    vector<char> order;
+    for(char c: k) {
+        if (!used[c - 'A']) { used[c - 'A'] = true; order.push_back(c); }
+    }
+    for(char c='A'; c<='Z'; ++c) {
+        if (c == 'J') continue;
+        if (!used[c - 'A']) { used[c - 'A'] = true; order.push_back(c); }
+    }
+    vector<vector<char>> mat(5, vector<char>(5));
+    for(int i=0;i<25;++i) mat[i/5][i%5] = order[i];
+    return mat;
+}
+
+void print_matrix(const vector<vector<char>>&m) {
+    cout << "5x5 matrix (I/J merged):\n";
+    for(int i=0;i<5;++i){
+        for(int j=0;j<5;++j) cout << m[i][j] << ' ';
+        cout << '\n';
+    }
+}
+
+pair<int,int> find_pos(const vector<vector<char>>&m, char ch) {
+    if (ch == 'J') ch = 'I';
+    for(int i=0;i<5;++i) for(int j=0;j<5;++j) if (m[i][j] == ch) return {i,j};
+    return {-1,-1};
+}
+
+vector<pair<char,char>> preprocess(const string &text) {
+    string s = normalize(text);
+    vector<pair<char,char>> res;
+    for (size_t i=0; i<s.size();) {
+        char a = s[i];
+        char b = 0;
+        if (i+1 < s.size()) b = s[i+1];
+        if (b == 0) {
+            res.push_back({a,'X'});
+            ++i;
+        } else if (a == b) {
+            res.push_back({a,'X'});
+            ++i;
+        } else {
+            res.push_back({a,b});
+            i += 2;
+        }
+    }
+    return res;
+}
+
+pair<char,char> encrypt_pair(pair<char,char> pr, const vector<vector<char>>&m) {
+    auto [r1,c1] = find_pos(m, pr.first);
+    auto [r2,c2] = find_pos(m, pr.second);
+    if (r1 == r2) {
+        return { m[r1][(c1+1)%5], m[r2][(c2+1)%5] };
+    } else if (c1 == c2) {
+        return { m[(r1+1)%5][c1], m[(r2+1)%5][c2] };
+    } else {
+        return { m[r1][c2], m[r2][c1] };
+    }
+}
+
+pair<char,char> decrypt_pair(pair<char,char> pr, const vector<vector<char>>&m) {
+    auto [r1,c1] = find_pos(m, pr.first);
+    auto [r2,c2] = find_pos(m, pr.second);
+    if (r1 == r2) {
+        return { m[r1][(c1+4)%5], m[r2][(c2+4)%5] };
+    } else if (c1 == c2) {
+        return { m[(r1+4)%5][c1], m[(r2+4)%5][c2] };
+    } else {
+        return { m[r1][c2], m[r2][c1] };
+    }
+}
+
+string playfair_encrypt(const string &plaintext, const string &key) {
+    auto mat = generate_matrix(key);
+    auto bigrams = preprocess(plaintext);
+    string out;
+    for (auto pr : bigrams) {
+        auto e = encrypt_pair(pr, mat);
+        out.push_back(e.first);
+        out.push_back(e.second);
+    }
+    return out;
+}
+
+string playfair_decrypt(const string &ciphertext, const string &key) {
+    auto mat = generate_matrix(key);
+    string c = normalize(ciphertext);
+    string out;
+    for (size_t i=0;i<c.size(); i+=2) {
+        pair<char,char> pr = { c[i], c[i+1] };
+        auto d = decrypt_pair(pr, mat);
+        out.push_back(d.first);
+        out.push_back(d.second);
+    }
+    return out;
+}
+
+string remove_inserted_X(const string &s) {
+    string t;
+    for (size_t i=0;i<s.size();++i) {
+        if (i+2 < s.size() && s[i+1] == 'X' && s[i] == s[i+2]) {
+            t.push_back(s[i]);
+            i += 1;
+            continue;
+        }
+        t.push_back(s[i]);
+    }
+    if (!t.empty() && t.back() == 'X') t.pop_back();
+    return t;
+}
+
+int main(){
+    string plaintext = "HELLO WORLD";
+    string key = "KHOA";
+
+    cout << "Playfair Cipher - demo (ascii messages)\n";
+    cout << "Plaintext: " << plaintext << "\n";
+    cout << "Key: " << key << "\n\n";
+
+    auto mat = generate_matrix(key);
+    print_matrix(mat);
+    cout << "\n";
+
+    string cipher = playfair_encrypt(plaintext, key);
+    cout << "Ciphertext: " << cipher << "\n";
+
+    string dec = playfair_decrypt(cipher, key);
+    cout << "Decrypted (raw): " << dec << "\n";
+
+    string dec_clean = remove_inserted_X(dec);
+    cout << "Decrypted (cleaned): " << dec_clean << "\n";
+
+    cout << "\nNote: Playfair inserts 'X' as filler; cleaned result is heuristic.\n";
+    return 0;
+}
