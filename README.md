@@ -202,7 +202,7 @@ Tóm lại: transposition khá mạnh chống brute-force đơn giản nếu n l
 
 <img width="1153" height="604" alt="image" src="https://github.com/user-attachments/assets/cc4f2191-9478-42db-99e0-db1b2afa287a" />
 
-### 3. Hoán vị ###
+### 4. Vigenère ###
 
 **Tên gọi**
 
@@ -247,7 +247,7 @@ Không gian khóa
 
 <img width="260" height="269" alt="image" src="https://github.com/user-attachments/assets/f8a8dc6f-c9ba-498f-b975-da1578f5ee9f" />
 
-### 3. Hoán vị ###
+### 5. Playfair ###
 
 **Tên gọi**
 
